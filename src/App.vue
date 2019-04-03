@@ -1,41 +1,40 @@
 <template>
   <div id="app">
-    <input v-model="accessKey">
-    <input v-model="secretKey">
+    <input v-model="firstQuery">
+    <input v-model="secondQuery">
     <button @click="get">Get</button>
+    <br/>
+    <img :src="firstImageSrc" style="width:50%;" />
+    <img :src="secondImageSrc" style="width:50%;" />
   </div>
 </template>
 
 <script>
-import Unsplash, { toJson } from "unsplash-js";
+   /*eslint-disable */
 
 export default {
   name: "App",
   data() {
     return {
-      accessKey: "",
-      secretKey: "",
-      unsplashApp: null
+      firstQuery: "",
+      secondQuery: "",
+      firstImageSrc: "",
+      secondImageSrc: ""
     };
   },
   methods: {
     get() {
-      if (!this.unsplashApp) {
-        this.unsplashApp = new Unsplash({
-          applicationId: this.accessKey,
-          secret: this.secretKey
-        });
-      }
+      this.$http.get('https://blend-service.azurewebsites.net/getrandomphoto?query=' + this.firstQuery).then((response) => {
+        var image = response.body;
+        this.firstImageSrc = image.urls.regular;
+      });
 
-      this.unsplashApp.photos
-        .getRandomPhoto()
-        .then(toJson)
-        .then(json => {
-          debugger;
-        });
+      this.$http.get('https://blend-service.azurewebsites.net/getrandomphoto?query=' + this.secondQuery).then((response) => {
+        var image = response.body;
+        this.secondImageSrc = image.urls.regular;
+      });
     }
-  },
-  components: {}
+  }
 };
 </script>
 
