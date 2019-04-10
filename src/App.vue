@@ -9,12 +9,12 @@
     <div>
       <a href="#" @click.prevent="() => {showImages = !showImages}" style="color: black; opacity: .1;">{{showImages ? "hide" : "show"}}</a>
       <div class="image-one" v-if="showImages">
-        <a :href="firstImageDownload"><img :src="firstImageSrc" /></a>
+        <a target="_blank" :href="firstImageDownload"><img :src="firstImage.urls.small" /></a>
         <br/>
         Photo by <a target="_blank" :href="firstImageAttr + '?utm_source=' + appName + '&utm_medium=referral'">{{firstImageAuthor}}</a> on <a href="https://unsplash.com/?utm_source=DoubleExposure&utm_medium=referral">Unsplash</a>
       </div>
-      <div class="image-two" v-if="showImages">
-        <a :href="secondImageDownload"><img :src="secondImageSrc" /></a>
+      <div target="_blank" class="image-two" v-if="showImages">
+        <a :href="secondImageDownload"><img :src="secondImage.urls.small" /></a>
         <br/>
         Photo by <a target="_blank" :href="secondImageAttr + '?utm_source=' + appName + '&utm_medium=referral'">{{secondImageAuthor}}</a> on <a href="https://unsplash.com/?utm_source=DoubleExposure&utm_medium=referral">Unsplash</a>
       </div>
@@ -46,10 +46,10 @@ export default {
   },
   computed: {
     firstImageSrc () {
-      return this.firstImage ? this.firstImage.urls.regular : this.firstImageSrcDefault;
+      return this.firstImage ? this.firstImage.urls.raw + "&w=1024&h=1024&fit=crop" : this.firstImageSrcDefault;
     },
     secondImageSrc () {
-      return this.secondImage ? this.secondImage.urls.regular : this.secondImageSrcDefault;
+      return this.secondImage ? this.secondImage.urls.raw + "&w=1024&h=1024&fit=crop" : this.secondImageSrcDefault;
     },
     firstImageAttr () {
       return this.firstImage ? this.firstImage.user.links.html : "";
@@ -75,6 +75,12 @@ export default {
     secondImageDirectDownload () {
       return this.secondImage ? this.secondImage.links.download : "";
     },
+    firstImageDownloadLocation () {
+      return this.firstImage ? "https://blend-service.azurewebsites.net/download?url=" + this.firstImage.links.download_location : "";
+    },
+    secondImageDownloadLocation () {
+      return this.secondImage ? "https://blend-service.azurewebsites.net/download?url=" + this.secondImage.links.download_location : "";
+    },
     text () {
       return this.firstImageAuthor ? `1 | Author: ${this.firstImageAuthor} | Insta: ${this.firstImage.user.instagram_username} | Download: ${this.firstImageDownload} | Direct Download: ${this.firstImageDirectDownload} \r\n
 2 | Author: ${this.secondImageAuthor} | Insta: ${this.secondImage.user.instagram_username} | Download: ${this.secondImageDownload} | Direct Download: ${this.secondImageDirectDownload}` : "";
@@ -99,8 +105,8 @@ export default {
         this.images = response.body;
         this.renderImages();
       }, (err) => {
+        window.clearInterval(this.intervalRunner);
         alert(err.bodyText);
-        console.log(err.bodyText)
       });
     },
     runInterval () {
