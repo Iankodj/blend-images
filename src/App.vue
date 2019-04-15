@@ -101,7 +101,7 @@ export default {
       }
     },
     get() {
-      this.$http.get('https://blend-service.azurewebsites.net' + '/getrandomphoto?count=30&orientation=squarish').then((response) => {
+      this.$http.get('/getrandomphoto?count=30&orientation=squarish').then((response) => {
         this.images = response.body;
         this.renderImages();
       }, (err) => {
