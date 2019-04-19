@@ -91,10 +91,10 @@ export default {
       return this.secondImage ? this.secondImage.links.download : "";
     },
     firstImageDownloadLocation () {
-      return this.firstImage ? "http://newrandom.herokuapp.com/download?url=" + this.firstImage.links.download_location : "";
+      return this.firstImage ? "/download?url=" + this.firstImage.links.download_location : "";
     },
     secondImageDownloadLocation () {
-      return this.secondImage ? "http://newrandom.herokuapp.com/download?url=" + this.secondImage.links.download_location : "";
+      return this.secondImage ? "/download?url=" + this.secondImage.links.download_location : "";
     },
     text () {
       return this.firstImageAuthor ? `1 | Author: ${this.firstImageAuthor} | Insta: ${this.firstImage.user.instagram_username} | Download: ${this.firstImageDownload} | Direct Download: ${this.firstImageDirectDownload} \r\n
