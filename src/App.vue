@@ -184,7 +184,7 @@ export default {
       }
     },
     get() {
-      this.$http.get('http://newrandom.herokuapp.com/getrandomphoto?count=10&orientation=squarish').then((response) => {
+      this.$http.get('/getrandomphoto?count=10&orientation=squarish').then((response) => {
         this.images = response.body;
         this.renderImages();
       }, (err) => {
