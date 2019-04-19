@@ -9,7 +9,7 @@
         <img :src="secondImageSrc" class="image-two-overlay"/>
     </div>
     <div>
-      <a class="show-link" href="#" @click.prevent="() => {showImages = !showImages}" style="">{{showImages ? ">" : '-'}}</a>
+      <!-- <a class="show-link" href="#" @click.prevent="() => {showImages = !showImages}" style="">{{showImages ? ">" : '-'}}</a> -->
       <div class="image-one" v-if="showImages">
         <a target="_blank" :href="firstImageDownload"><img :src="firstImageSmall" /></a>
         <br/>
