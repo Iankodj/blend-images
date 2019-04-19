@@ -1,20 +1,22 @@
 <template>
   <div id="wrapper" ref="mainWrapper">
-    <div id="app" class="image-overlay" :style="overlayStyle">
-      <a download :href="'data:text/plain;charset=utf-8,' + encodeURIComponent(text)">
+    <loading :active.sync="isLoading" 
+            :is-full-page="false"></loading>
+
+
+    <div id="app" class="image-overlay">
         <img :src="firstImageSrc" class="image-one-overlay"/>
         <img :src="secondImageSrc" class="image-two-overlay"/>
-      </a>
     </div>
     <div>
-      <a href="#" @click.prevent="() => {showImages = !showImages}" style="color: black; opacity: .1;">{{showImages ? "hide" : "show"}}</a>
+      <a class="show-link" href="#" @click.prevent="() => {showImages = !showImages}" style="">{{showImages ? ">" : '-'}}</a>
       <div class="image-one" v-if="showImages">
-        <a target="_blank" :href="firstImageDownload"><img :src="firstImage.urls.small" /></a>
+        <a target="_blank" :href="firstImageDownload"><img :src="firstImageSmall" /></a>
         <br/>
         Photo by <a target="_blank" :href="firstImageAttr + '?utm_source=' + appName + '&utm_medium=referral'">{{firstImageAuthor}}</a> on <a href="https://unsplash.com/?utm_source=DoubleExposure&utm_medium=referral">Unsplash</a>
       </div>
       <div target="_blank" class="image-two" v-if="showImages">
-        <a :href="secondImageDownload"><img :src="secondImage.urls.small" /></a>
+        <a :href="secondImageDownload"><img :src="secondImageSmall" /></a>
         <br/>
         Photo by <a target="_blank" :href="secondImageAttr + '?utm_source=' + appName + '&utm_medium=referral'">{{secondImageAuthor}}</a> on <a href="https://unsplash.com/?utm_source=DoubleExposure&utm_medium=referral">Unsplash</a>
       </div>
@@ -25,15 +27,21 @@
 <script>
    /*eslint-disable */
 
+import JSZip from 'jszip';
+import {saveAs} from 'file-saver';
+import { setTimeout } from 'timers';
+import Loading from 'vue-loading-overlay';
+
 export default {
   name: "App",
+  components: {
+      Loading
+  },
   data() {
     return {
       firstImageSrcDefault: "",
       secondImageSrcDefault: "",
       overlayStyle: {
-        height: "800px",
-        width: "800px"
       },
       firstImage: null,
       secondImage: null,
@@ -41,7 +49,8 @@ export default {
       alertPress: false,
       intervalRunner: null,
       images: [],
-      showImages: true
+      showImages: false,
+      isLoading: false
     };
   },
   computed: {
@@ -50,6 +59,12 @@ export default {
     },
     secondImageSrc () {
       return this.secondImage ? this.secondImage.urls.raw + "&w=1024&h=1024&fit=crop" : this.secondImageSrcDefault;
+    },
+    firstImageSmall () {
+      return this.firstImage ? this.firstImage.urls.small : this.firstImageSrcDefault;
+    },
+    secondImageSmall () {
+      return this.secondImage ? this.secondImage.urls.small : this.secondImageSrcDefault;
     },
     firstImageAttr () {
       return this.firstImage ? this.firstImage.user.links.html : "";
@@ -76,10 +91,10 @@ export default {
       return this.secondImage ? this.secondImage.links.download : "";
     },
     firstImageDownloadLocation () {
-      return this.firstImage ? "https://blend-service.azurewebsites.net/download?url=" + this.firstImage.links.download_location : "";
+      return this.firstImage ? "http://newrandom.herokuapp.com/download?url=" + this.firstImage.links.download_location : "";
     },
     secondImageDownloadLocation () {
-      return this.secondImage ? "https://blend-service.azurewebsites.net/download?url=" + this.secondImage.links.download_location : "";
+      return this.secondImage ? "http://newrandom.herokuapp.com/download?url=" + this.secondImage.links.download_location : "";
     },
     text () {
       return this.firstImageAuthor ? `1 | Author: ${this.firstImageAuthor} | Insta: ${this.firstImage.user.instagram_username} | Download: ${this.firstImageDownload} | Direct Download: ${this.firstImageDirectDownload} \r\n
@@ -88,20 +103,88 @@ export default {
   },
   mounted () {
     this.renderImages();
-    window.addEventListener('keyup', this.renderImages);
-  },
+    window.addEventListener('keyup', (ev) => {
+      if(ev.altKey) {
+        if(ev.key === "Backspace") {
+          this.showImages = !this.showImages;
+        }
+
+        if(ev.key === "Enter") {
+          this.getImages();
+        }
+
+        if(ev.key === "r") {
+          this.renderImages();
+        }
+      }
+
+
+    });
+ 
+    },
   methods: {
+    getImages () {
+      this.isLoading = true;
+      var zip = new JSZip();
+      zip.file("details.txt", this.text);
+
+      var imgFolder = zip.folder("images");
+
+      var firstImageUrl, secondImageUrl, firstImageData, secondImageData;
+
+      var tryLoad = () => {
+        if(firstImageData && secondImageData) {
+          firstImageData = null;
+          secondImageData = null;
+          this.isLoading = false;
+          zip.generateAsync({type:"blob"})
+            .then(function(content) {
+                // Force down of the Zip file
+                saveAs(content, "image.zip");
+            });
+        } else {
+          setTimeout(tryLoad, 100);
+        }
+      }
+
+      this.$http.get(this.firstImageDownloadLocation).then((response) => {
+        firstImageUrl = response.body.url;
+        fetch(firstImageUrl)
+          .then(response => response.blob())
+          .then((image) => {
+            firstImageData = true;
+            imgFolder.file("1.jpg", image, {base64: true});
+            tryLoad();
+          });
+      });
+
+
+      this.$http.get(this.secondImageDownloadLocation).then((response) => {
+        secondImageUrl = response.body.url;
+        fetch(secondImageUrl)
+          .then(response => response.blob())
+          .then((image) => {
+            secondImageData = true;
+            imgFolder.file("2.jpg", image, {base64: true});
+            tryLoad();
+          });
+      });
+
+
+
+    },
     renderImages () {
       if(this.images.length) {
         this.firstImage = this.images.pop();
         this.secondImage = this.images.pop();
+
         this.runInterval();
       } else {
         this.get();
       }
     },
     get() {
-      this.$http.get('/getrandomphoto?count=30&orientation=squarish').then((response) => {
+      this.$http.get('http://newrandom.herokuapp.com/getrandomphoto?count=10&orientation=squarish').then((response) => {
         this.images = response.body;
         this.renderImages();
       }, (err) => {
@@ -121,8 +204,19 @@ export default {
 </script>
 
 <style>
+html, body, #wrapper {
+  height: 100%;
+  overflow: hidden;
+}
+
+.image-overlay {
+  height: 95%;
+  width: 50%
+}
+
 body {
   background: #eee;
+  
 }
 img {
     height: 100%;
@@ -140,8 +234,7 @@ img {
 .image-overlay {
     overflow: hidden;
     position: relative;
-    width: 100%;
-    margin: 0 auto;
+    margin: 1% auto 1% auto;
 }
 .image-one-overlay {
     opacity: .5;
@@ -171,5 +264,17 @@ img {
 .image-two {
   top:250px;
   left: 0;
+}
+
+.download-link {
+  cursor: pointer;
+}
+
+.show-link {
+color: black; 
+opacity: .1;
+position: absolute;
+top:550px;
+
 }
 </style>
